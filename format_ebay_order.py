@@ -59,12 +59,56 @@ def create_app():
     return '''
       <!doctype html>
       <title>Upload New Order File</title>
-      <h1>Upload new File</h1>
+      <h1>Upload New Order File</h1>
+      <form method=post enctype=multipart/form-data>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+      </form>
+      <p>Click <a href="/update_cost_lookup">here</a> to update cost lookup file</p>
+
+      '''
+
+  @app.route('/update_cost_lookup', methods=['GET', 'POST'])
+  def upload_lookup_file():
+    if request.method == 'POST':
+      # check if the post request has the file part
+      if 'file' not in request.files:
+        return redirect(url_for('error', message="No file component in request payload"))
+      file = request.files['file']
+
+      # if user does not select file, browser also
+      # submit an empty part without filename
+      if file.filename == '':
+        return redirect(url_for('error', message="No file selected"))
+
+      if file and allowed_file(file.filename):
+        file.save(COST_LOOKUP)
+        
+        return '''
+          <!doctype html>
+          <title>Order Processed</title>
+          <h1>Cost Lookup File Updated!!!</h1>
+          ''' 
+      
+      else:
+        return redirect(url_for('error', message="File type not supported"))
+
+    return '''
+      <!doctype html>
+      <title>Upload New Cost Lookup File</title>
+      <h1>Upload New Cost Lookup File</h1>
+      <p>Click <a href="/cost_lookup">here</a> to download current cost lookup file</p>
       <form method=post enctype=multipart/form-data>
         <input type=file name=file>
         <input type=submit value=Upload>
       </form>
       '''
+
+  @app.route('/cost_lookup', methods=['GET'])
+  def cost_lookup():
+    response = send_from_directory('./', COST_LOOKUP)
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
   @app.route('/error', methods=['GET'])
   def error(message):
